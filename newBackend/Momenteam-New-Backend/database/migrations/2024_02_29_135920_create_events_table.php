@@ -16,7 +16,7 @@
                 $table->unsignedBigInteger('memberId');
                 $table->string('title');
                 $table->string('description');
-                $table->timestamp('date');
+                $table->dateTime('date');
                 $table->string('location');
                 $table->timestamp('dateOfCreation')->useCurrent();
                 $table->enum('status', ['active', 'inactive', 'finshed','pending']);

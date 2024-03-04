@@ -15,7 +15,8 @@ use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\VerificationController;
 use App\Http\Controllers\EventUserController;
-
+use App\Http\Controllers\ImageController;
+use App\Http\Controllers\EmailController;
 
 
 
@@ -48,8 +49,15 @@ Route::get('/verify-email/{id}/{hash}', [VerificationController::class, 'verifyE
 // Route to send the verification email
 Route::post('/email/verification-notification', [VerificationController::class, 'sendVerificationEmail'])->middleware('auth:api');
 
-// Route to handle the email verification link
+// routes/api.php
+    Route::post('/send-email', [EmailController::class, 'sendEmail']);
 
+
+
+
+
+// routes/web.php
+Route::get('/image-exists/{filename}', [ImageController::class, 'checkImageExists']);
 
 
 // Route::post('/certificates', [CertificateController::class, 'createCertificate']);

@@ -6,31 +6,43 @@ use App\Models\Event;
 use Illuminate\Http\Request;
 use Exception;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
+use Carbon\Carbon;
 
 class EventController extends Controller
 {
     public function store(Request $request)
     {
         try {
-            // Ensure the request data is in the correct format
-            $data = $request->validate([
+            $request->validate([
                 'memberId' => 'required|integer',
                 'title' => 'required|string|max:255',
                 'description' => 'required|string',
                 'location' => 'required|string',
                 'date' => 'required|date',
                 'status' => 'required|string|in:active,inactive',
+                'image' => 'nullable|file|image|max:2048', // Ensure this matches the frontend
             ]);
 
-            $event = Event::create($data);
+            $eventData = $request->all();
+            $eventData['date'] = Carbon::parse($request->date)->timezone('Asia/Beirut');
+
+            $event = Event::create($eventData);
+
+            if ($request->hasFile('image')) {
+                $imagePath = $request->file('image')->store('public/images');
+                $imageName = basename($imagePath);
+                $event->image = $imageName;
+                $event->save();
+            }
+
             return response()->json($event, 201);
         } catch (Exception $e) {
             Log::error('Error creating event: ', ['exception' => $e]);
-            return response()->json(['error' => 'Error creating event.'], 500);
+            return response()->json(['error' => 'Error creating event: ' . $e->getMessage()], 500);
         }
     }
 
-    // Read (GET)
     public function index()
     {
         try {
@@ -42,7 +54,6 @@ class EventController extends Controller
         }
     }
 
-    // Show (GET)
     public function show(Event $event)
     {
         try {
@@ -53,19 +64,45 @@ class EventController extends Controller
         }
     }
 
-    // Update (PUT/PATCH)
-    public function update(Request $request, Event $event)
+    public function update(Request $request, $id)
     {
         try {
-            $event->update($request->all());
-            return response()->json($event);
+            $event = Event::findOrFail($id);
+
+            $request->validate([
+                'memberId' => 'required|integer',
+                'title' => 'required|string|max:255',
+                'description' => 'required|string',
+                'location' => 'required|string',
+                'date' => 'required|date',
+                'status' => 'required|string|in:active,inactive',
+                'image' => 'nullable|file|image|max:2048', // Ensure this matches the frontend
+            ]);
+
+            $eventData = $request->except('image');
+            $eventData['date'] = Carbon::parse($request->date)->timezone('Asia/Beirut');
+
+            $event->update($eventData);
+
+            if ($request->hasFile('image')) {
+                if ($event->image) {
+                    Storage::delete('public/images/' . $event->image);
+                }
+
+                $imagePath = $request->file('image')->store('public/images');
+                $imageName = basename($imagePath);
+                $event->image = $imageName;
+            }
+
+            $event->save();
+
+            return response()->json(['message' => 'Event updated successfully', 'event' => $event], 200);
         } catch (Exception $e) {
             Log::error('Error updating event: ' . $e->getMessage());
-            return response()->json(['error' => 'Error updating event.'],  500);
+            return response()->json(['message' => 'An error occurred while updating the event'], 500);
         }
     }
 
-    // Delete (DELETE)
     public function destroy(Event $event)
     {
         try {

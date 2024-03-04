@@ -5,34 +5,40 @@ use App\Models\Post;
 use Illuminate\Http\Request;
 use Exception;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 
 class PostController extends Controller
-{ public function store(Request $request)
+{  public function store(Request $request)
     {
         try {
             $request->validate([
                 'memberId' => 'required|exists:memberDetails,id',
                 'title' => 'required|string',
                 'description' => 'required|string',
-                'image' => 'nullable|string', // Validate the image if provided
-
+                'image' => 'nullable|file|image|max:2048', // Validate the image if provided
             ]);
 
             $post = Post::create([
                 'memberId' => $request->memberId,
                 'title' => $request->title,
                 'description' => $request->description,
-                'image' => $request->image, // Store the image path if provided
-
                 'status' => 'draft',
             ]);
 
-            return response()->json(['message' => 'Post created successfully', 'post' => $post],   201);
+            if ($request->hasFile('image')) {
+                $imagePath = $request->file('image')->store('public/images');
+                $imageName = basename($imagePath);
+                $post->image = $imageName;
+                $post->save();
+            }
+
+            return response()->json(['message' => 'Post created successfully', 'post' => $post], 201);
         } catch (Exception $e) {
             Log::error('Error creating post: ' . $e->getMessage());
-            return response()->json(['message' => 'An error occurred while creating the post'],   500);
+            return response()->json(['message' => 'An error occurred while creating the post'], 500);
         }
     }
+
     public function index()
     {
         try {
@@ -56,27 +62,28 @@ class PostController extends Controller
         }
     }
 
+  
     public function update(Request $request, $id)
     {
         try {
             $post = Post::findOrFail($id);
+            Log::info('Update request data:', $request->all());
     
-            // Validate the request data based on the current status of the post
+            // Initialize validation rules
             $validationRules = [
                 'status' => 'sometimes|in:submitted,reviewed,approved,published', // Make 'status' optional
+                'image' => 'nullable|file|image|max:2048', // Ensure this matches the frontend
             ];
     
-            // If the member is confirming their own post, they can only update the status to 'submitted'
+            // Determine additional validation rules based on the current status of the post
             if ($post->status === 'draft' && $request->status === 'submitted') {
                 // No additional validation rules needed for the member to submit their post
-            }elseif ($post->status === 'submitted') {
+            } elseif ($post->status === 'submitted') {
                 $validationRules = array_merge($validationRules, [
                     'scientificAuditorId' => 'required|exists:memberDetails,id',
                     'scientificAuditorApprovelDate' => 'required|date',
-                  
                 ]);
-            } 
-            elseif ($post->status === 'approved') {
+            } elseif ($post->status === 'approved') {
                 $validationRules = array_merge($validationRules, [
                     'linguisticCheckerId' => 'required|exists:memberDetails,id',
                     'linguisticCheckerApprovelDate' => 'required|date',
@@ -88,61 +95,41 @@ class PostController extends Controller
                 ]);
             }
     
-            $request->validate($validationRules);
+            // Validate the request data
+            $validatedData = $request->validate($validationRules);
     
-            // Update the post based on the current status
-            if ($post->status === 'draft' && $request->status === 'submitted') {
-                // The member is confirming their own post, so we only update the status
-                $post->update([
-                    'status' => 'submitted',
-                    'status' => 'approved',
-                    'title' => $request->title ?? $post-> title,
-
-                    'description' => $request->description ?? $post-> description
-               
-                ]);
-                return response()->json(['message' => 'Post status updated to submitted', 'post' => $post],   200);
-            } elseif ($post->status === 'submitted') {
-                $post->update([
-                    'scientificAuditorId' => $request->scientificAuditorId,
-                    'scientificAuditorApprovelDate' => $request->scientificAuditorApprovelDate,
-                    'status' => 'approved',
-                    'title' => $request->title ?? $post-> title,
-
-                    'description' => $request->description ?? $post-> description
-                ]); 
-                return response()->json(['message' => 'Post status updated to approved', 'post' => $post],   200);
-            } elseif ($post->status === 'approved') {
-                $post->update([
-                    'linguisticCheckerId' => $request->linguisticCheckerId,
-                    'linguisticCheckerApprovelDate' => $request->linguisticCheckerApprovelDate,
-                    'status' => 'reviewed',
-                    'title' => $request->title ?? $post-> title,
-                    'description' => $request->description ?? $post-> description
-
-                ]);
-                return response()->json(['message' => 'Post status updated to reviewed', 'post' => $post],   200);
-            } elseif ($post->status === 'reviewed') {
-                $post->update([
-                    'socialMediaId' => $request->socialMediaId,
-                    'socialMediaApprovelDate' => $request->socialMediaApprovelDate,
-                    'status' => 'published',
-                    'title' => $request->title ?? $post-> title,
-                    'description' => $request->description ?? $post-> description
-
-                ]);
-                return response()->json(['message' => 'Post status updated to published', 'post' => $post],   200);
+            // Handle image update if a new image is provided
+            if ($request->hasFile('image')) {
+                // Delete the old image if it exists
+                if ($post->image) {
+                    Storage::delete('public/images/' . $post->image);
+                }
+    
+                // Store the new image and update the path
+                $imagePath = $request->file('image')->store('public/images');
+                $imageName = basename($imagePath);
+                $post->image = $imageName;
             }
     
-            return response()->json(['message' => 'No valid update parameters provided'],   400);
-        } catch (\Exception $e) {
+            // Update the post based on the current status
+            if ($request->has('status')) {
+                $post->status = $request->status;
+            }
+    
+            // Save the post after updating the status and image
+            $post->save();
+    
+            return response()->json(['message' => 'Post updated successfully', 'post' => $post], 200);
+        } catch (Exception $e) {
             // Log the exception for debugging purposes
             Log::error('Error updating post: ' . $e->getMessage());
     
             // Return a generic error response
-            return response()->json(['message' => 'An error occurred while updating the post' . $e->getMessage()],   500);
+            return response()->json(['message' => 'An error occurred while updating the post'], 500);
         }
     }
+    
+
     
     public function destroy($id)
     {

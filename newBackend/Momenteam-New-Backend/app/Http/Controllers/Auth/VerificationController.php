@@ -39,9 +39,4 @@ class VerificationController extends Controller
     
         return response()->json(['message' => 'Email verified successfully.']);
     }
-    
-
-
-    
-
 }
