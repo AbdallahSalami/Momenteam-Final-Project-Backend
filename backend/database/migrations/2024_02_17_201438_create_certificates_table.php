@@ -25,7 +25,8 @@ Schema::create('certificates', function (Blueprint $table) {
     $table->timestamp('managerApprovelDate')->nullable();
     $table->timestamp('secretarySecondDate')->nullable();
     $table->string('qrCode')->nullable();
-    $table->enum('status', ['sended', 'approved', 'waiting','pending']);
+    $table->enum('status', ['pending', 'waiting', 'approved','sended']);
+
     $table->timestamps();
 });
 

@@ -6,9 +6,11 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Laravel\Sanctum\HasApiTokens;
-use Illuminate\Contracts\Auth\MustVerifyEmail; // Add this line
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 
-class User extends Authenticatable implements MustVerifyEmail // Add this line
+use Tymon\JWTAuth\Contracts\JWTSubject;
+
+class User extends Authenticatable implements MustVerifyEmail, JWTSubject
 {
     use HasFactory, Notifiable, HasApiTokens;
 
@@ -23,7 +25,7 @@ class User extends Authenticatable implements MustVerifyEmail // Add this line
         'major',
         'educationalInstitution',
         'phoneNumber',
-        'emailVerification',
+        'emailVerification', // Your custom column
         'roleId',
         'status',
     ];
@@ -40,6 +42,39 @@ class User extends Authenticatable implements MustVerifyEmail // Add this line
 
     public function events()
     {
-        return $this->belongsToMany(Event::class, 'event_user', 'user_id', 'event_id');
+        return $this->belongsToMany(Event::class, 'event_user');
+    }
+    
+
+    public function getJWTIdentifier()
+    {
+        return $this->getKey();
+    }
+
+    public function getJWTCustomClaims()
+    {
+        return [];
+    }
+
+    /**
+     * Determine if the user has verified their email address.
+     *
+     * @return bool
+     */
+    public function hasVerifiedEmail()
+    {
+        return $this->emailVerification === 'verified';
+    }
+
+    /**
+     * Mark the given user's email as verified.
+     *
+     * @return bool
+     */
+    public function markEmailAsVerified()
+    {
+        return $this->forceFill([
+            'emailVerification' => 'verified',
+        ])->save();
     }
 }

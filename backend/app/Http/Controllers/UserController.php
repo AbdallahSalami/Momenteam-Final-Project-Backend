@@ -86,30 +86,40 @@ class UserController extends Controller
         }
     }
 
-    public function update(Request $request, User $user)
+    public function update(Request $request, User $user, $fieldsToUpdate = null)
     {
         try {
-            // Validate the request data
-            $validatedData = $request->validate([
-                'username' => 'required|max:255|unique:users,username,' . $user->id, // Ensure the username is unique in the users table, except for the current user
-                'email' => 'required|email|unique:users,email,' . $user->id, // Ensure the email is unique in the users table, except for the current user
+            // Define the validation rules for each field
+            $validationRules = [
+                'username' => 'sometimes|required|max:255|unique:users,username,' . $user->id,
+                'email' => 'sometimes|required|email|unique:users,email,' . $user->id,
                 'password' => 'sometimes|required|min:8',
-                'firstName' => 'required|max:255',
-                'secondName' => 'required|max:255',
-                'lastName' => 'required|max:255',
-                'highestDegree' => 'required|string|max:255',
-                'major' => 'required|string|max:255',
-                'educationalInstitution' => 'required|max:255',
-                'phoneNumber' => 'required|integer|unique:users,phoneNumber,' . $user->id, // Ensure the phone number is unique in the users table, except for the current user
-                'emailVerification' => 'required|max:255',
-                'roleId' => 'nullable|exists:roles,id', // Allow roleId to be nullable
-                'status' => 'required|in:active,inactive,pending',
-            ]); 
-         
+                'firstName' => 'sometimes|required|max:255',
+                'secondName' => 'sometimes|required|max:255',
+                'lastName' => 'sometimes|required|max:255',
+                'highestDegree' => 'sometimes|required|string|max:255',
+                'major' => 'sometimes|required|string|max:255',
+                'educationalInstitution' => 'sometimes|required|max:255',
+                'phoneNumber' => 'sometimes|required|integer|unique:users,phoneNumber,' . $user->id,
+                'emailVerification' => 'sometimes|required|max:255',
+                'roleId' => 'sometimes|nullable|exists:roles,id',
+                'status' => 'sometimes|required|in:active,inactive,pending',
+            ];
+    
+            // If specific fields are provided, only validate those fields
+            if ($fieldsToUpdate) {
+                $validationRules = array_intersect_key($validationRules, array_flip($fieldsToUpdate));
+            }
+    
+            // Validate the request data
+            $validatedData = $request->validate($validationRules);
+    
+            // Hash the password if i   t's being updated
             if ($request->has('password')) {
                 $validatedData['password'] = Hash::make($validatedData['password']);
             }
     
+            // Update the user with the validated data
             $user->update($validatedData);
     
             return response()->json(['message' => 'User updated successfully.', 'data' => $user]);
@@ -127,18 +137,19 @@ class UserController extends Controller
                 $errorMessages[] = 'You have entered an invalid phone number.';
             }
             if (isset($errors['password'])) {
-                $errorMessages[] = 'The password must be at least   8 characters long.';
+                $errorMessages[] = 'The password must be at least  8 characters long.';
             }
     
             $errorMessage = implode(', ', $errorMessages);
     
             Log::error('Error updating User: ' . $e->getMessage());
-            return response()->json(['error' => $errorMessage],   422);
+            return response()->json(['error' => $errorMessage],  422);
         } catch (Exception $e) {
             Log::error('Error updating User: ' . $e->getMessage());
-            return response()->json(['error' => 'Error updating User.'],   500);
+            return response()->json(['error' => 'Error updating User.'],  500);
         }
     }
+    
     
 
     public function destroy(User $user)

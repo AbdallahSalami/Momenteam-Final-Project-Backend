@@ -65,6 +65,8 @@ class RegisterController extends Controller
                 'userId' => $user->id,
                 'username' => $user->username,
                 'roleId' => $user->roleId,
+                'roleName' => $user->role?->name,
+
             ];
 
             // Log the response data
@@ -77,7 +79,7 @@ class RegisterController extends Controller
             Log::error($e->getMessage());
 
             // Return a JSON response with the error message and status code
-            return response()->json(['message' => $e->getMessage()], $e->getCode());
+            return response()->json(['message' => $e->getMessage()], 500);
         }
     }
 }

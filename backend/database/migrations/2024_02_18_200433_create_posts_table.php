@@ -22,7 +22,7 @@ return new class extends Migration
             $table->timestamp('linguisticCheckerApprovelDate')->nullable();
             $table->unsignedBigInteger('socialMediaId')->useCurrent()->nullable();
             $table->timestamp('socialMediaApprovelDate')->nullable();
-            // $table->string('image')->nullable(); // Add this line to include an image column
+            $table->string('image')->nullable(); // Add this line to include an image column
             $table->enum('status', ['draft', 'submitted', 'approved','reviewed','published']);
 
             $table->timestamps();

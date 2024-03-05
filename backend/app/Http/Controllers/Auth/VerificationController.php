@@ -12,27 +12,35 @@ class VerificationController extends Controller
 {
     public function sendVerificationEmail(Request $request)
     {
-        $request->user()->sendEmailVerificationNotification();
-
+        $user = $request->user();
+        $verificationUrl = url("http://localhost:5173/verify-email/{$user->id}/" . sha1($user->getEmailForVerification()));
+    
+        $user->sendEmailVerificationNotification($verificationUrl); 
+    
         return response()->json(['message' => 'Verification email sent.']);
     }
+    
 
     public function verifyEmail(Request $request, $id, $hash)
     {
         $user = User::findOrFail($id);
-
+    
         if (!hash_equals($hash, sha1($user->getEmailForVerification()))) {
             throw new \Exception('Invalid verification link.');
         }
-
+    
         if ($user->hasVerifiedEmail()) {
             return response()->json(['message' => 'Email already verified.']);
         }
-
+    
         if ($user->markEmailAsVerified()) {
             event(new Verified($user));
         }
-
+    
         return response()->json(['message' => 'Email verified successfully.']);
     }
+    
+
+
+    
 }

@@ -171,7 +171,7 @@ class CertificateController extends Controller
     // Delete a certificate by ID
     public function destroy($id)
     {
-        try {
+        try {   
             $certificate = Certificate::findOrFail($id);
             $certificate->delete();
 

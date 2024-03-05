@@ -19,8 +19,10 @@ return new class extends Migration
             $table->timestamp('dateOfCreation')->useCurrent();
             $table->enum('status', ['active', 'inactive', 'finshed','pending']);
             $table->timestamps();
-
-
+            $table->unsignedBigInteger('userId'); // Add the userId column
+            $table->foreign('memberId')->references('id')->on('memberDetails')
+                ->onDelete('cascade')
+                ->onUpdate('cascade'); 
             $table->foreign('userId')->references('id')->on('users')
                 ->onDelete('cascade')
                 ->onUpdate('cascade');

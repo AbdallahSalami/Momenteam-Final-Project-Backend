@@ -9,15 +9,23 @@ use Illuminate\Support\Facades\Log;
 
 class EventController extends Controller
 {
-    // Create (POST)
     public function store(Request $request)
     {
         try {
-            $event = Event::create($request->all());
-            return response()->json($event,   201);
+            // Ensure the request data is in the correct format
+            $data = $request->validate([
+                'memberId' => 'required|integer',
+                'title' => 'required|string|max:255',
+                'description' => 'required|string',
+                'date' => 'required|date',
+                'status' => 'required|string|in:active,inactive',
+            ]);
+
+            $event = Event::create($data);
+            return response()->json($event, 201);
         } catch (Exception $e) {
-            Log::error('Error creating event: ' . $e->getMessage());
-            return response()->json(['error' => 'Error creating event.'],   500);
+            Log::error('Error creating event: ', ['exception' => $e]);
+            return response()->json(['error' => 'Error creating event.'], 500);
         }
     }
 
@@ -25,21 +33,22 @@ class EventController extends Controller
     public function index()
     {
         try {
-            $events = Event::with('users')->get();
+            $events = Event::all();
             return response()->json($events);
         } catch (Exception $e) {
             Log::error('Error retrieving events: ' . $e->getMessage());
-            return response()->json(['error' => 'Error retrieving events.'],   500);
+            return response()->json(['error' => 'Error retrieving events.'],  500);
         }
     }
 
+    // Show (GET)
     public function show(Event $event)
     {
         try {
             return response()->json($event);
         } catch (Exception $e) {
             Log::error('Error retrieving event: ' . $e->getMessage());
-            return response()->json(['error' => 'Error retrieving event.'],   500);
+            return response()->json(['error' => 'Error retrieving event.'],  500);
         }
     }
 
@@ -51,7 +60,7 @@ class EventController extends Controller
             return response()->json($event);
         } catch (Exception $e) {
             Log::error('Error updating event: ' . $e->getMessage());
-            return response()->json(['error' => 'Error updating event.'],   500);
+            return response()->json(['error' => 'Error updating event.'],  500);
         }
     }
 
@@ -60,10 +69,10 @@ class EventController extends Controller
     {
         try {
             $event->delete();
-            return response()->json(['message' => 'Event deleted successfully.'],   200);
+            return response()->json(['message' => 'Event deleted successfully.'],  200);
         } catch (Exception $e) {
             Log::error('Error deleting event: ' . $e->getMessage());
-            return response()->json(['error' => 'Error deleting event.'],   500);
+            return response()->json(['error' => 'Error deleting event.'],  500);
         }
     }
 }

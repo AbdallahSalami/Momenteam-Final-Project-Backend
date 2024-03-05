@@ -91,6 +91,11 @@ class PostController extends Controller
                 // The member is confirming their own post, so we only update the status
                 $post->update([
                     'status' => 'submitted',
+                    'status' => 'approved',
+                    'title' => $request->title ?? $post-> title,
+
+                    'description' => $request->description ?? $post-> description
+               
                 ]);
                 return response()->json(['message' => 'Post status updated to submitted', 'post' => $post],   200);
             } elseif ($post->status === 'submitted') {
@@ -101,7 +106,7 @@ class PostController extends Controller
                     'title' => $request->title ?? $post-> title,
 
                     'description' => $request->description ?? $post-> description
-                ]);
+                ]); 
                 return response()->json(['message' => 'Post status updated to approved', 'post' => $post],   200);
             } elseif ($post->status === 'approved') {
                 $post->update([

@@ -94,6 +94,10 @@ class ArticleController extends Controller
                 // The member is confirming their own article, so we only update the status
                 $article->update([
                     'status' => 'submitted',
+                    'title' => $request->title ?? $article->title,
+                    'description' => $request->description ?? $article->description,
+                    'image' => $request->image ?? $article->image, // Update the image if provided
+               
                 ]);
                 return response()->json(['message' => 'Article status updated to submitted', 'article' => $article],   200);
             } elseif ($article->status === 'submitted') {
